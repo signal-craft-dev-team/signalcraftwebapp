@@ -14,10 +14,13 @@ export type UserProfile = {
     plan?: string;
     customer_name?: string;
     primary_place_name?: string;
+    primary_technician_phone?: string;
+    primary_technician_name?: string;
 };
 
 export const meResponseToUserProfile = (me: MeResponse): UserProfile => {
     const primaryPlace = me.places?.[0];
+    const primaryTechnician = me.technicians?.find(t => t.is_primary) ?? me.technicians?.[0];
     return {
         user: {
             email: me.user?.email ?? '',
@@ -26,5 +29,7 @@ export const meResponseToUserProfile = (me: MeResponse): UserProfile => {
         },
         customer_name: me.customer?.name,
         primary_place_name: primaryPlace?.name,
+        primary_technician_phone: primaryTechnician?.phone,
+        primary_technician_name: primaryTechnician?.name,
     };
 };

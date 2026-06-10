@@ -5,6 +5,7 @@ import { classTokens } from '@/styles/tokens';
 import { MaterialSymbolIcon } from '../ui/MaterialSymbolIcon';
 
 export function BottomNav() {
+    return null;
     const location = useLocation();
 
     const tabs = [

@@ -29,7 +29,7 @@ export function HomeGreeting({ fullName, lastUpdatedAt }: HomeGreetingProps) {
                 className={`${classTokens.text.primary} text-2xl font-bold`}
                 style={{ fontFamily: cssVars.fontHeading }}
             >
-                좋은 하루 보내고 있어요 👋
+                좋은 하루 보내고 있으신가요? 👋
             </h2>
             <p className={`${classTokens.text.muted} text-xs mt-2`}>
                 마지막 업데이트 {formatRelativeTime(lastUpdatedAt)}

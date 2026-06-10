@@ -22,8 +22,8 @@ export default defineConfig({
         type: 'module',
       },
       manifest: {
-        name: 'SignalCraft Biz',
-        short_name: 'SignalCraft',
+        name: 'SIGNALCRAFT',
+        short_name: 'SIGNALCRAFT',
         description: 'Zero-config AI Facility Management Solution',
         theme_color: '#3b82f6',
         background_color: '#f8fafc',

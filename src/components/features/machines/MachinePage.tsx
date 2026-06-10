@@ -1,3 +1,8 @@
+export function MachinePage() {
+    return null;
+}
+
+/*
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Map, LayoutGrid, MapPin, Loader2 } from 'lucide-react';
@@ -67,7 +72,6 @@ export function MachinePage() {
                 <div className="sticky top-0 z-30 pt-2 pb-2 transition-all border-b border-slate-100"
                     style={effects.stickyFrosted}
                 >
-                    {/* Search Bar */}
                     <div className="px-4 sm:px-6 py-2">
                         <div className="relative">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
@@ -82,7 +86,6 @@ export function MachinePage() {
                         </div>
                     </div>
 
-                    {/* Filters & View Toggle */}
                     <div className="flex items-center justify-between px-4 sm:px-6 pb-2">
                         <MachineFilters currentFilter={filter} onFilterChange={setFilter} />
                         <div className="flex p-1 bg-slate-200/50" style={{ borderRadius: 'var(--radius-sm)' }}>
@@ -112,7 +115,6 @@ export function MachinePage() {
                     </div>
                 </div>
 
-                {/* Machines Content */}
                 <div className="px-2 pt-2 pb-6 space-y-1">
                     {isPending ? (
                         <div className="flex flex-col items-center justify-center py-24 gap-4">
@@ -137,7 +139,6 @@ export function MachinePage() {
                                     {filteredMachines.length} Machines Found
                                 </span>
                             </div>
-
                             <AnimatePresence mode='popLayout'>
                                 {filteredMachines.length > 0 ? (
                                     filteredMachines.map((machine, idx) => (
@@ -169,16 +170,12 @@ export function MachinePage() {
                                 <div className="absolute inset-0 opacity-20 pointer-events-none">
                                     <div className="absolute inset-0" style={{ backgroundImage: `radial-gradient(${chartTokens.gridMajor} 1px, transparent 1px)`, backgroundSize: '32px 32px' }} />
                                 </div>
-
-                                {/* Map Controls */}
                                 <div className="absolute top-6 right-6 flex flex-col gap-2">
                                     <div className="size-10 bg-white shadow-lg flex flex-col divide-y divide-slate-100 overflow-hidden" style={{ borderRadius: 'var(--radius-sm)' }}>
                                         <button className="flex-1 flex items-center justify-center text-slate-600 hover:bg-slate-50" aria-label="확대">+</button>
                                         <button className="flex-1 flex items-center justify-center text-slate-600 hover:bg-slate-50" aria-label="축소">-</button>
                                     </div>
                                 </div>
-
-                                {/* Map Pins */}
                                 <div className="flex-1 relative">
                                     {filteredMachines.map((machine, idx) => (
                                         <motion.button
@@ -188,10 +185,7 @@ export function MachinePage() {
                                             transition={{ delay: idx * 0.08, duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
                                             onClick={() => handleCardClick(machine)}
                                             className="absolute group"
-                                            style={{
-                                                left: `${20 + (idx * 15) % 60}%`,
-                                                top: `${20 + (idx * 20) % 60}%`
-                                            }}
+                                            style={{ left: `${20 + (idx * 15) % 60}%`, top: `${20 + (idx * 20) % 60}%` }}
                                             aria-label={`${machine.name} 위치`}
                                         >
                                             <div className="relative flex flex-col items-center">
@@ -210,8 +204,6 @@ export function MachinePage() {
                                         </motion.button>
                                     ))}
                                 </div>
-
-                                {/* Site Ranking Overlay */}
                                 <div className="p-6 bg-white/80 border-t border-white" style={{ backdropFilter: 'blur(12px)' }}>
                                     <h4 className="section-label mb-3">전체 사이트 헬스 랭킹</h4>
                                     <div className="space-y-3">
@@ -248,3 +240,4 @@ export function MachinePage() {
         </div>
     );
 }
+*/

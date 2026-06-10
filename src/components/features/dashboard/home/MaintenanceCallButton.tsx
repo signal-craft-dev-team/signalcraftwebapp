@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, X } from 'lucide-react';
 import { classTokens, cssVars } from '@/styles/tokens';
@@ -6,25 +6,10 @@ import { cn } from '@/lib/utils';
 
 interface MaintenanceCallButtonProps {
     phone: string;
+    name?: string;
 }
 
-function useIsDesktop(): boolean {
-    const [isDesktop, setIsDesktop] = useState(false);
-
-    useEffect(() => {
-        if (typeof window === 'undefined' || !window.matchMedia) return;
-        const query = window.matchMedia('(hover: hover) and (pointer: fine)');
-        const update = () => setIsDesktop(query.matches);
-        update();
-        query.addEventListener('change', update);
-        return () => query.removeEventListener('change', update);
-    }, []);
-
-    return isDesktop;
-}
-
-export function MaintenanceCallButton({ phone }: MaintenanceCallButtonProps) {
-    const isDesktop = useIsDesktop();
+export function MaintenanceCallButton({ phone, name }: MaintenanceCallButtonProps) {
     const [isPopupOpen, setPopupOpen] = useState(false);
 
     const buttonClass = cn(
@@ -34,26 +19,15 @@ export function MaintenanceCallButton({ phone }: MaintenanceCallButtonProps) {
 
     return (
         <>
-            {isDesktop ? (
-                <button
-                    type="button"
-                    onClick={() => setPopupOpen(true)}
-                    className={buttonClass}
-                    style={{ borderRadius: cssVars.radiusMd, fontFamily: cssVars.fontHeading }}
-                >
-                    <Phone className="size-4" />
-                    정비사 전화하기
-                </button>
-            ) : (
-                <a
-                    href={`tel:${phone}`}
-                    className={buttonClass}
-                    style={{ borderRadius: cssVars.radiusMd, fontFamily: cssVars.fontHeading }}
-                >
-                    <Phone className="size-4" />
-                    정비사 전화하기
-                </a>
-            )}
+            <button
+                type="button"
+                onClick={() => setPopupOpen(true)}
+                className={buttonClass}
+                style={{ borderRadius: cssVars.radiusMd, fontFamily: cssVars.fontHeading }}
+            >
+                <Phone className="size-4" />
+                정비사 전화하기
+            </button>
 
             <AnimatePresence>
                 {isPopupOpen && (
@@ -77,9 +51,9 @@ export function MaintenanceCallButton({ phone }: MaintenanceCallButtonProps) {
                             className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-xs mx-auto bg-card shadow-2xl z-[101] p-6 text-center"
                             style={{ borderRadius: cssVars.radiusLg }}
                         >
-                            <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center justify-between mb-2">
                                 <p className={cn('text-xs font-semibold uppercase', classTokens.text.muted)}>
-                                    정비사 연락처
+                                    정비사 연락처{name ? ` : ${name}` : ''}
                                 </p>
                                 <button
                                     type="button"
