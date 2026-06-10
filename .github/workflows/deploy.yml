@@ -82,7 +82,7 @@ jobs:
 
       - name: Cloud Run Service 배포
         run: |
-          gcloud run services deploy ${{ env.SERVICE }} \
+          gcloud run deploy ${{ env.SERVICE }} \
             --image=${{ env.GAR_IMAGE }}:${{ github.sha }} \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT }} \
