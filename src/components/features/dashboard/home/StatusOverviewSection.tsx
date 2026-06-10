@@ -1,4 +1,4 @@
-import { HelpCircle } from 'lucide-react';
+// import { HelpCircle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { classTokens, cssVars } from '@/styles/tokens';
 import { cn } from '@/lib/utils';
@@ -7,10 +7,10 @@ import { StatusInfoCard } from './StatusInfoCard';
 
 interface StatusOverviewSectionProps {
     statusOverview: StatusOverviewCard[];
-    onHelpClick: () => void;
+    onHelpClick?: () => void;
 }
 
-export function StatusOverviewSection({ statusOverview, onHelpClick }: StatusOverviewSectionProps) {
+export function StatusOverviewSection({ statusOverview }: StatusOverviewSectionProps) {
     return (
         <section className="px-6 mb-8">
             <div className="flex items-center gap-1.5 mb-3">
@@ -20,7 +20,7 @@ export function StatusOverviewSection({ statusOverview, onHelpClick }: StatusOve
                 >
                     상태 정보
                 </h3>
-                <button
+                {/* <button
                     type="button"
                     onClick={onHelpClick}
                     aria-label="상태 정보 도움말 열기"
@@ -32,7 +32,7 @@ export function StatusOverviewSection({ statusOverview, onHelpClick }: StatusOve
                     style={{ borderRadius: cssVars.radiusSm }}
                 >
                     <HelpCircle className="size-4" />
-                </button>
+                </button> */}
             </div>
             <Card
                 className={cn('px-4 py-1 divide-y', classTokens.border.subtle)}

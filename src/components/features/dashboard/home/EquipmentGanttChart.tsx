@@ -44,14 +44,37 @@ function formatDurationShort(ms: number): string {
     return `${Math.floor(ms / DAY_MS)}일`;
 }
 
-function buildAxisLabels(startMs: number, endMs: number): string[] {
+function buildAxisLabels(startMs: number, endMs: number, hourInterval: number): Array<{ label: string; pct: number }> {
     if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return [];
     const span = endMs - startMs;
-    const useHour = span < 48 * HOUR_MS;
-    const formatter = new Intl.DateTimeFormat('ko-KR', useHour
+    const use3Hour = span <= 25 * HOUR_MS;
+    const intervalMs = use3Hour ? hourInterval * HOUR_MS : DAY_MS;
+
+    const formatter = new Intl.DateTimeFormat('ko-KR', use3Hour
         ? { hour: '2-digit', minute: '2-digit', hour12: false }
         : { month: 'numeric', day: 'numeric' });
-    return [0, 0.25, 0.5, 0.75, 1].map((ratio) => formatter.format(new Date(startMs + span * ratio)));
+
+    const labels: Array<{ label: string; pct: number }> = [];
+
+    // 로컬 시간 기준으로 첫 tick 계산
+    const startDate = new Date(startMs);
+    const startHour = startDate.getHours();
+    const firstIntervalHour = Math.ceil(startHour / hourInterval) * hourInterval;
+    const firstTickDate = new Date(startMs);
+    firstTickDate.setHours(firstIntervalHour, 0, 0, 0);
+    let firstTickMs = firstTickDate.getTime();
+    if (firstTickMs < startMs) firstTickMs += intervalMs;
+
+    for (let t = firstTickMs; t <= endMs; t += intervalMs) {
+        const pct = ((t - startMs) / span) * 100;
+        if (pct < 0 || pct > 100) continue;
+        const d = new Date(t);
+        const isMidnight = d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0;
+        const label = (use3Hour && isMidnight && t > startMs) ? '24:00' : formatter.format(d);
+        labels.push({ label, pct });
+    }
+
+    return labels;
 }
 
 export function EquipmentGanttChart({
@@ -65,6 +88,18 @@ export function EquipmentGanttChart({
     const baseStartMs = new Date(periodStartAt).getTime();
     const baseEndMs = new Date(periodEndAt).getTime();
     const baseTotalMs = baseEndMs - baseStartMs;
+
+    const [isMobile, setIsMobile] = useState(() =>
+        typeof window !== 'undefined' ? window.matchMedia('(max-width: 640px)').matches : true
+    );
+    useEffect(() => {
+        const mq = window.matchMedia('(max-width: 640px)');
+        const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, []);
+
+    const hourInterval = isMobile ? 4 : 2;
 
     const [viewport, setViewport] = useState<Viewport>(FULL_VIEWPORT);
     const viewportRef = useRef<Viewport>(viewport);
@@ -201,12 +236,12 @@ export function EquipmentGanttChart({
     }, [segments, selectedMachineId, effectiveStartMs, effectiveEndMs, effectiveTotalMs]);
 
     const axisLabels = useMemo(
-        () => buildAxisLabels(effectiveStartMs, effectiveEndMs),
-        [effectiveStartMs, effectiveEndMs],
+        () => buildAxisLabels(effectiveStartMs, effectiveEndMs, hourInterval),
+        [effectiveStartMs, effectiveEndMs, hourInterval],
     );
     const isEmpty = visibleSegments.length === 0;
 
-    const nowMs = baseEndMs;
+    const nowMs = Date.now();
     const showNow = effectiveTotalMs > 0 && nowMs >= effectiveStartMs && nowMs <= effectiveEndMs;
     const nowLeftPct = showNow ? ((nowMs - effectiveStartMs) / effectiveTotalMs) * 100 : 0;
 
@@ -313,15 +348,12 @@ export function EquipmentGanttChart({
             </div>
 
             {axisLabels.length > 0 && (
-                <div className={cn('grid grid-cols-5 text-[10px] font-medium', classTokens.text.muted)}>
-                    {axisLabels.map((label, index) => (
+                <div className="relative h-4">
+                    {axisLabels.map(({ label, pct }) => (
                         <span
-                            key={`${label}-${index}`}
-                            className={cn(
-                                index === 0 && 'text-left',
-                                index === axisLabels.length - 1 && 'text-right',
-                                index !== 0 && index !== axisLabels.length - 1 && 'text-center',
-                            )}
+                            key={`${label}-${pct}`}
+                            className={cn('absolute text-[10px] font-medium -translate-x-1/2', classTokens.text.muted)}
+                            style={{ left: `${pct}%` }}
                         >
                             {label}
                         </span>

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { HelpCircle, ChevronDown } from 'lucide-react';
 import { classTokens, cssVars } from '@/styles/tokens';
 import { cn } from '@/lib/utils';
-import type { EquipmentRunState, EquipmentUsageData, HomePeriod } from '@/lib/contracts/dashboardHome';
+import type { EquipmentUsageData, HomePeriod } from '@/lib/contracts/dashboardHome';
 import { EquipmentGanttChart } from './EquipmentGanttChart';
 
 interface EquipmentUsageSectionProps {
@@ -19,35 +19,7 @@ const PERIOD_TO_MS: Record<HomePeriod, number> = {
     '7d': 7 * 24 * 60 * 60 * 1000,
 };
 
-function formatMinutes(minutes: number): string {
-    if (minutes < 60) return `${minutes}분`;
-    const hours = Math.floor(minutes / 60);
-    const remain = minutes % 60;
-    if (remain === 0) return `${hours}시간`;
-    return `${hours}시간 ${remain}분`;
-}
-
-function getClippedMinutes(
-    state: EquipmentRunState,
-    data: EquipmentUsageData,
-    selectedMachineId: string,
-    periodStartAt: string,
-    periodEndAt: string,
-): number {
-    const startMs = new Date(periodStartAt).getTime();
-    const endMs = new Date(periodEndAt).getTime();
-    if (!(endMs > startMs)) return 0;
-
-    const totalMs = data.segments.reduce((sum, segment) => {
-        if (segment.machineId !== selectedMachineId || segment.state !== state) return sum;
-        const segmentStart = Math.max(new Date(segment.startedAt).getTime(), startMs);
-        const segmentEnd = Math.min(new Date(segment.endedAt).getTime(), endMs);
-        if (!(segmentEnd > segmentStart)) return sum;
-        return sum + (segmentEnd - segmentStart);
-    }, 0);
-
-    return Math.round(totalMs / 60000);
-}
+// TODO: formatMinutes, getClippedMinutes — 구동 누적 복구 시 재활성화
 
 export function EquipmentUsageSection({
     data,
@@ -81,10 +53,6 @@ export function EquipmentUsageSection({
         };
     }, [data.segments, data.selectedPeriod]);
 
-    const usageSummary = useMemo(() => ({
-        runningMinutes: getClippedMinutes('RUNNING', data, selectedMachineId, periodStartAt, periodEndAt),
-        offMinutes: getClippedMinutes('OFF', data, selectedMachineId, periodStartAt, periodEndAt),
-    }), [data, selectedMachineId, periodStartAt, periodEndAt]);
 
     return (
         <section className="px-6 mb-8">
@@ -173,20 +141,7 @@ export function EquipmentUsageSection({
                 periodEndAt={periodEndAt}
             />
 
-            <div className="mt-4">
-                <div
-                    className={cn('w-full p-3 bg-muted', classTokens.border.subtle, 'border')}
-                    style={{ borderRadius: cssVars.radiusMd }}
-                >
-                    <p className={cn('text-xs', classTokens.text.muted)}>구동 누적</p>
-                    <p
-                        className={cn('text-lg font-bold', classTokens.text.primary)}
-                        style={{ fontFamily: cssVars.fontHeading }}
-                    >
-                        {formatMinutes(usageSummary.runningMinutes)}
-                    </p>
-                </div>
-            </div>
+            {/* TODO: 구동 누적 — 백엔드 집계 API 확정 후 복구 */}
         </section>
     );
 }

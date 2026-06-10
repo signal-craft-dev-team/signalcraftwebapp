@@ -14,9 +14,9 @@ const ICON_BY_ID = {
 } as const;
 
 const STATE_LABEL: Record<HomeStatusKind, string> = {
-    healthy: '연결 상태 양호',
-    warning: '연결 상태 보통',
-    danger: '연결 상태 불량',
+    healthy: '가동중',
+    warning: '중지',
+    danger: '연결상태 에러',
 };
 
 const STATE_DOT: Record<HomeStatusKind, string> = {
