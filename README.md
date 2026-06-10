@@ -48,3 +48,11 @@
 - **`index.html`에 `env.js` 로드 추가**
 > [!ERROR]
 > 초기 배포 시 `window.__SIGNALCRAFT_CONFIG__`가 설정되지 않아 mock 모드로 동작. `index.html`에 `<script src="/env.js"></script>` 추가로 해결. 앱 번들보다 먼저 로드되어야 런타임 config가 적용됨.
+
+- **EquipmentUsageSection — `/machines/{id}?period=` 기반으로 재연결**
+> [!INFO]
+> 선택된 설비 + 기간으로 `/machines/{id}?period=` 호출. `machine_status_history` 포인트 데이터를 Gantt 세그먼트로 변환. 연속 동일 state 병합, 1분 이상 갭은 NO_DATA 처리, 현재 시각 이후는 NO_DATA로 채움. `keepPreviousData` 적용으로 설비 전환 시 컴포넌트 언마운트 방지. 구동 누적 섹션은 백엔드 집계 API 확정 전까지 hidden.
+
+- **Gantt 차트 타임라인 개선**
+> [!INFO]
+> `24h` 기간: 오늘 00:00 ~ 24:00 고정(자정 정각 기준). 현재 시각 마커를 `Date.now()` 기반 실제 시각으로 수정. 축 레이블: 모바일 4시간 / 데스크톱 2시간 간격, KST 타임존 보정으로 00:00부터 정확히 표시. 자정은 "24:00"으로 표기.
