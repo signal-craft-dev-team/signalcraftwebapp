@@ -13,7 +13,7 @@ import { EquipmentUsageSection } from './home/EquipmentUsageSection';
 import { apiFetch } from '@/lib/api';
 import { throwIfNotOk } from '@/lib/apiErrorHelper';
 import { QUERY_KEYS } from '@/lib/queryKeys';
-import type { MeResponse, MachinesResponse, MachineDetailResponse } from '@/lib/contracts/cloudRunApi';
+import type { MeResponse, MachinesResponse, MachineDetailResponse, StatusSegment } from '@/lib/contracts/cloudRunApi';
 import type { StatusOverviewCard, EquipmentSummaryItem, EquipmentUsageData, GanttSegment, HomePeriod, EquipmentRunState } from '@/lib/contracts/dashboardHome';
 import {
     meResponseToUserProfile,
@@ -27,89 +27,35 @@ const PERIOD_OPTIONS: Array<{ id: HomePeriod; label: string }> = [
     { id: '7d', label: '7일' },
 ];
 
-const STATE_MAP: Record<string, EquipmentRunState> = {
+const SEGMENT_STATE_MAP: Record<StatusSegment['state'], EquipmentRunState> = {
     running: 'RUNNING',
     stopped: 'OFF',
-    error: 'ERROR',
-    unknown: 'NO_DATA',
+    no_data: 'NO_DATA',
 };
 
-const GAP_THRESHOLD_MS = 60 * 1000; // 1분 이상 공백은 NO_DATA 처리
+const PERIOD_BUCKET_MINUTES: Record<HomePeriod, number> = {
+    '24h': 5,
+    '3d': 15,
+    '5d': 30,
+    '7d': 30,
+};
 
-function historyToSegments(
+function segmentsFromApi(
     machineId: string,
-    history: MachineDetailResponse['machine_status_history'],
-    periodStartAt: string,
-    periodEndAt: string,
+    statusSegments: StatusSegment[],
+    period: HomePeriod,
 ): GanttSegment[] {
-    const periodStart = new Date(periodStartAt).getTime();
-    const periodEnd = new Date(periodEndAt).getTime();
-    const now = periodEnd;
+    if (!statusSegments?.length) return [];
 
-    if (!history?.length) {
-        return [{ machineId, state: 'NO_DATA', startedAt: periodStartAt, endedAt: periodEndAt }];
-    }
+    const bucketMs = PERIOD_BUCKET_MINUTES[period] * 60 * 1000;
 
-    const asc = [...history]
-        .reverse()
-        .filter(p => {
-            const t = new Date(p.recorded_at).getTime();
-            return t >= periodStart && t <= periodEnd;
-        });
-
-    if (!asc.length) {
-        return [{ machineId, state: 'NO_DATA', startedAt: periodStartAt, endedAt: periodEndAt }];
-    }
-
-    const segments: GanttSegment[] = [];
-
-    // 기간 시작 ~ 첫 기록 사이 NO_DATA 처리
-    const firstPointMs = new Date(asc[0].recorded_at).getTime();
-    if (firstPointMs - periodStart > GAP_THRESHOLD_MS) {
-        segments.push({ machineId, state: 'NO_DATA', startedAt: periodStartAt, endedAt: asc[0].recorded_at });
-    }
-
-    for (let i = 0; i < asc.length; i++) {
-        const state = STATE_MAP[asc[i].operational_state] ?? 'NO_DATA';
-        const startedAt = asc[i].recorded_at;
-        const nextRecordedAt = asc[i + 1]?.recorded_at;
-        const endedAt = nextRecordedAt ?? new Date(now).toISOString();
-
-        // 다음 포인트까지 갭이 크면 현재 세그먼트 닫고 NO_DATA 삽입
-        if (nextRecordedAt) {
-            const gapMs = new Date(nextRecordedAt).getTime() - new Date(startedAt).getTime();
-            if (gapMs > GAP_THRESHOLD_MS) {
-                const segEndAt = new Date(new Date(startedAt).getTime() + GAP_THRESHOLD_MS).toISOString();
-                if (segments.length > 0 && segments[segments.length - 1].state === state) {
-                    segments[segments.length - 1].endedAt = segEndAt;
-                } else {
-                    segments.push({ machineId, state, startedAt, endedAt: segEndAt });
-                }
-                segments.push({ machineId, state: 'NO_DATA', startedAt: segEndAt, endedAt: nextRecordedAt });
-                continue;
-            }
-        }
-
-        if (segments.length > 0 && segments[segments.length - 1].state === state) {
-            segments[segments.length - 1].endedAt = endedAt;
-        } else {
-            segments.push({ machineId, state, startedAt, endedAt });
-        }
-    }
-
-    // 현재 시각 이후 ~ 기간 종료는 NO_DATA (미래 데이터 없음)
-    const nowIso = new Date().toISOString();
-    if (segments.length > 0) {
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment.endedAt > nowIso) {
-            lastSegment.endedAt = nowIso;
-        }
-    }
-    if (nowIso < periodEndAt) {
-        segments.push({ machineId, state: 'NO_DATA', startedAt: nowIso, endedAt: periodEndAt });
-    }
-
-    return segments;
+    return statusSegments.map((seg, i) => ({
+        machineId,
+        state: SEGMENT_STATE_MAP[seg.state] ?? 'NO_DATA',
+        startedAt: seg.bucket_start,
+        endedAt: statusSegments[i + 1]?.bucket_start
+            ?? new Date(new Date(seg.bucket_start).getTime() + bucketMs).toISOString(),
+    }));
 }
 
 const ENTRY_SPLASH_FLAG = 'signalcraft:entrySplashShown';
@@ -203,31 +149,25 @@ export function DashboardPage() {
             );
             const detail = (await response.json()) as MachineDetailResponse;
             const machines = (machinesData?.equipmentSummary ?? []).map(m => ({ id: m.id, name: m.name }));
-            let periodStartAt: string;
+            const periodStartAt = detail.status_segments[0]?.bucket_start ?? new Date().toISOString();
             let periodEndAt: string;
-
             if (selectedPeriod === '24h') {
-                const todayStart = new Date();
-                todayStart.setHours(0, 0, 0, 0);
-                const todayEnd = new Date(todayStart);
-                todayEnd.setDate(todayEnd.getDate() + 1); // 다음날 00:00 = 오늘 24:00
-                periodStartAt = todayStart.toISOString();
-                periodEndAt = todayEnd.toISOString();
+                const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+                const kstNow = new Date(Date.now() + KST_OFFSET_MS);
+                kstNow.setUTCHours(0, 0, 0, 0);
+                kstNow.setUTCDate(kstNow.getUTCDate() + 1);
+                periodEndAt = new Date(kstNow.getTime() - KST_OFFSET_MS).toISOString();
             } else {
-                const PERIOD_MS: Record<Exclude<HomePeriod, '24h'>, number> = {
-                    '3d': 3 * 24 * 60 * 60 * 1000,
-                    '5d': 5 * 24 * 60 * 60 * 1000,
-                    '7d': 7 * 24 * 60 * 60 * 1000,
-                };
                 periodEndAt = new Date().toISOString();
-                periodStartAt = new Date(Date.now() - PERIOD_MS[selectedPeriod]).toISOString();
             }
-            const segments = historyToSegments(effectiveMachineId, detail.machine_status_history, periodStartAt, periodEndAt);
+            const segments = segmentsFromApi(effectiveMachineId, detail.status_segments, selectedPeriod);
             return {
                 selectedPeriod,
                 periodOptions: PERIOD_OPTIONS,
                 machines,
                 segments,
+                periodStartAt,
+                periodEndAt,
                 summary: { runningMinutes: 0, offMinutes: 0 },
             };
         },

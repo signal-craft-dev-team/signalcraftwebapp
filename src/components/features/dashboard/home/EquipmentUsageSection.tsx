@@ -12,12 +12,6 @@ interface EquipmentUsageSectionProps {
     onHelpClick: () => void;
 }
 
-const PERIOD_TO_MS: Record<HomePeriod, number> = {
-    '24h': 24 * 60 * 60 * 1000,
-    '3d': 3 * 24 * 60 * 60 * 1000,
-    '5d': 5 * 24 * 60 * 60 * 1000,
-    '7d': 7 * 24 * 60 * 60 * 1000,
-};
 
 // TODO: formatMinutes, getClippedMinutes — 구동 누적 복구 시 재활성화
 
@@ -41,17 +35,7 @@ export function EquipmentUsageSection({
         [data.periodOptions, data.selectedPeriod],
     );
 
-    const { periodStartAt, periodEndAt } = useMemo(() => {
-        const segmentEnds = data.segments
-            .map((segment) => new Date(segment.endedAt).getTime())
-            .filter((value) => !Number.isNaN(value));
-        const referenceEnd = segmentEnds.length > 0 ? Math.max(...segmentEnds) : Date.now();
-        const span = PERIOD_TO_MS[data.selectedPeriod];
-        return {
-            periodStartAt: new Date(referenceEnd - span).toISOString(),
-            periodEndAt: new Date(referenceEnd).toISOString(),
-        };
-    }, [data.segments, data.selectedPeriod]);
+    const { periodStartAt, periodEndAt } = data;
 
 
     return (

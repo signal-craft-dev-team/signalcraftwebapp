@@ -31,12 +31,10 @@ export type CloudRunMachineStatus = {
     updated_at: string;
 };
 
-export type CloudRunMachineStatusHistoryPoint = {
-    id: string;
-    operational_state: OperationalState;
-    operational_score: number | null;
-    current_state: MachineState;
-    recorded_at: string;
+export type StatusSegment = {
+    bucket_start: string;
+    state: 'running' | 'stopped' | 'no_data';
+    avg_score: number | null;
 };
 
 export type MachinesResponse = {
@@ -55,8 +53,7 @@ export type MachineDetailResponse = {
     active_alerts_count: number;
     sensor_online: boolean;
     status_updated_at: string | null;
-    // recorded_at 내림차순, 최대 5,000건
-    machine_status_history: CloudRunMachineStatusHistoryPoint[];
+    status_segments: StatusSegment[];
 };
 
 export type PlaceMachinesResponse = {

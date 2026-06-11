@@ -3,7 +3,7 @@ import { mockScenario } from './mockScenario';
 import { getRuntimeConfigValue } from './runtimeConfig';
 import type {
     CloudRunMachineStatus,
-    CloudRunMachineStatusHistoryPoint,
+    StatusSegment,
     MachineDetailResponse,
     MachineState,
     MachinesResponse,
@@ -127,11 +127,18 @@ const toCloudRunMachine = (m: Machine): CloudRunMachineStatus => ({
     updated_at: now.toISOString(),
 });
 
-const HISTORY_POINTS_BY_PERIOD: Record<PeriodEnum, number> = {
-    '24h': 24,
-    '3d': 36,
-    '5d': 60,
-    '7d': 84,
+const PERIOD_BUCKET_MINUTES: Record<PeriodEnum, number> = {
+    '24h': 5,
+    '3d': 15,
+    '5d': 30,
+    '7d': 30,
+};
+
+const PERIOD_DAYS_AGO: Record<PeriodEnum, number> = {
+    '24h': 0,
+    '3d': 2,
+    '5d': 4,
+    '7d': 6,
 };
 
 const isPeriodEnum = (value: string | null): value is PeriodEnum =>
@@ -140,23 +147,30 @@ const isPeriodEnum = (value: string | null): value is PeriodEnum =>
 const buildHistoryForMachine = (
     m: Machine,
     period: PeriodEnum
-): CloudRunMachineStatusHistoryPoint[] => {
-    const count = HISTORY_POINTS_BY_PERIOD[period];
-    const baseOpScore = STATUS_TO_OPERATIONAL[m.status] === 'running' ? 0.9 : 0.4;
-    const points: CloudRunMachineStatusHistoryPoint[] = [];
+): StatusSegment[] => {
+    const bucketMinutes = PERIOD_BUCKET_MINUTES[period];
+    const daysAgo = PERIOD_DAYS_AGO[period];
+    const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
-    for (let i = 0; i < count; i += 1) {
+    // KST 자정 기준 period_start 계산
+    const kstNow = new Date(now.getTime() + KST_OFFSET_MS);
+    kstNow.setUTCHours(0, 0, 0, 0);
+    kstNow.setUTCDate(kstNow.getUTCDate() - daysAgo);
+    const periodStartMs = kstNow.getTime() - KST_OFFSET_MS;
+
+    const bucketMs = bucketMinutes * 60 * 1000;
+    const totalBuckets = Math.floor((now.getTime() - periodStartMs) / bucketMs) + 1;
+    const baseScore = STATUS_TO_OPERATIONAL[m.status] === 'running' ? 0.85 : 0.15;
+
+    return Array.from({ length: totalBuckets }, (_, i) => {
         const drift = ((i % 5) - 2) * 0.02;
-        points.push({
-            id: `history-${m.id}-${i}`,
-            operational_state: STATUS_TO_OPERATIONAL[m.status],
-            operational_score: Math.max(0, Math.min(1, baseOpScore + drift)),
-            current_state: STATUS_TO_CURRENT[m.status],
-            recorded_at: isoHoursAgo(i),
-        });
-    }
-
-    return points;
+        const avg_score = Math.round(Math.max(0, Math.min(1, baseScore + drift)) * 1000) / 1000;
+        return {
+            bucket_start: new Date(periodStartMs + i * bucketMs).toISOString(),
+            state: avg_score >= 0.5 ? 'running' : 'stopped',
+            avg_score,
+        } satisfies StatusSegment;
+    });
 };
 
 const toMachineDetail = (m: Machine, period: PeriodEnum): MachineDetailResponse => ({
@@ -171,7 +185,7 @@ const toMachineDetail = (m: Machine, period: PeriodEnum): MachineDetailResponse 
     active_alerts_count: m.status === 'error' ? 1 : 0,
     sensor_online: m.status !== 'error',
     status_updated_at: now.toISOString(),
-    machine_status_history: buildHistoryForMachine(m, period),
+    status_segments: buildHistoryForMachine(m, period),
 });
 
 const buildMeResponse = (): MeResponse => ({

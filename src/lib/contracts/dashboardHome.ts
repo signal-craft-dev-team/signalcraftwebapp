@@ -31,6 +31,8 @@ export type EquipmentUsageData = {
     periodOptions: Array<{ id: HomePeriod; label: string }>;
     machines: Array<{ id: string; name: string }>;
     segments: GanttSegment[];
+    periodStartAt: string;
+    periodEndAt: string;
     summary: {
         runningMinutes: number;
         offMinutes: number;

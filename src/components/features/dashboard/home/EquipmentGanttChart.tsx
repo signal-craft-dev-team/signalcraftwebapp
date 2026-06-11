@@ -31,7 +31,7 @@ const STATE_LABEL: Record<EquipmentRunState, string> = {
     NO_DATA: '데이터 없음',
 };
 
-const LEGEND_STATES: EquipmentRunState[] = ['RUNNING', 'OFF', 'ERROR', 'NO_DATA'];
+const LEGEND_STATES: EquipmentRunState[] = ['RUNNING', 'OFF', 'NO_DATA'];
 const NO_DATA_PATTERN =
     'repeating-linear-gradient(45deg, var(--border) 0 2px, transparent 2px 7px)';
 
