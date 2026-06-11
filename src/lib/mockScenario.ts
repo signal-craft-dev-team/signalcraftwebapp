@@ -111,6 +111,8 @@ export const mockScenario = {
                 { machineId: 'vacuum-oven-01', state: 'RUNNING', startedAt: '2026-06-01T18:00:00+09:00', endedAt: '2026-06-02T00:00:00+09:00' },
                 { machineId: 'ahu-01', state: 'RUNNING', startedAt: '2026-05-26T00:00:00+09:00', endedAt: '2026-06-02T00:00:00+09:00' },
             ],
+            periodStartAt: '2026-05-26T00:00:00+09:00',
+            periodEndAt: '2026-06-02T00:00:00+09:00',
             summary: {
                 runningMinutes: 960,
                 offMinutes: 240,
