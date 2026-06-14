@@ -13,6 +13,10 @@ import { QUERY_KEYS } from '@/lib/queryKeys';
 import { chartTokens, classTokens, effects } from '@/styles/tokens';
 import type { MachinesResponse } from '@/lib/contracts/cloudRunApi';
 import { cloudRunMachineToMachine } from '@/lib/contracts/machineStateAdapter';
+// PoC: 사내 재사용 카드 패키지 소비 (signal-craft-dev-team/signalcraft-dashboard-cards)
+import { OverallStatusCard } from 'signalcraft-dashboard-cards';
+import { overallStatusFromMachines } from 'signalcraft-dashboard-cards/adapters';
+import 'signalcraft-dashboard-cards/style.css';
 
 export function MachinePage() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -21,17 +25,18 @@ export function MachinePage() {
     const [initialView, setInitialView] = useState<'analysis' | 'maintenance'>('analysis');
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
-    const { data, isPending, error } = useQuery<{ machines: Machine[] }>({
+    const { data, isPending, error } = useQuery<{ machines: Machine[]; raw: MachinesResponse['machines'] }>({
         queryKey: QUERY_KEYS.machines,
         queryFn: async () => {
             const response = await apiFetch('/machines');
             if (!response.ok) throw new Error('설비 목록을 불러오는데 실패했습니다.');
             const raw = (await response.json()) as MachinesResponse;
-            return { machines: raw.machines.map(cloudRunMachineToMachine) };
+            return { machines: raw.machines.map(cloudRunMachineToMachine), raw: raw.machines };
         },
     });
 
     const machines = data?.machines ?? [];
+    const rawMachines = data?.raw ?? [];
 
     const filteredMachines = useMemo(() => {
         return machines.filter(machine => {
@@ -132,6 +137,13 @@ export function MachinePage() {
                         </div>
                     ) : viewMode === 'list' ? (
                         <>
+                            {/* PoC: 사내 카드 패키지의 전체 설비 요약 카드 */}
+                            {rawMachines.length > 0 && (
+                                <div className="px-4 mb-2">
+                                    <OverallStatusCard {...overallStatusFromMachines(rawMachines)} />
+                                </div>
+                            )}
+
                             <div className="px-4 mb-3 flex items-center justify-between">
                                 <span className="section-label mb-0">
                                     {filteredMachines.length} Machines Found
